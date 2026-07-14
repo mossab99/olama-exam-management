@@ -1,0 +1,104 @@
+/* RTL Styles for Olama School Weekly Plan System */
+body.rtl .olama-school-wrap {
+    direction: rtl;
+    text-align: right;
+}
+
+body.rtl .olama-card,
+body.rtl .olama-detail-group,
+body.rtl .olama-detail-value {
+    text-align: right;
+}
+
+body.rtl #olama-plan-details-card h2 {
+    gap: 12px;
+}
+
+body.rtl .olama-detail-group-title {
+    gap: 10px;
+}
+
+body.rtl .olama-progress-badge {
+    right: auto;
+    left: -8px;
+}
+
+/* Plan Form Status Info */
+body.rtl #olama-edit-status-container {
+    border-left: none;
+    border-right: 4px solid #3b82f6;
+}
+
+/* Assignment Grid */
+body.rtl .assignment-interface-grid {
+    direction: rtl;
+}
+
+body.rtl .assignment-item:hover .dashicons {
+    transform: translateX(-4px);
+}
+
+body.rtl .assignment-count {
+    margin-left: 8px;
+    margin-right: auto;
+}
+
+/* Tables */
+body.rtl .wp-list-table th,
+body.rtl .wp-list-table td {
+    text-align: right;
+}
+
+/* Nav Tabs */
+body.rtl .nav-tab-wrapper {
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 0;
+}
+
+body.rtl .nav-tab {
+    margin-left: 4px;
+    margin-right: 0;
+}
+
+/* Form layouts */
+body.rtl .form-table th {
+    text-align: right;
+    padding-right: 0;
+    padding-left: 20px;
+}
+
+body.rtl .olama-flex {
+    flex-direction: row-reverse;
+}
+
+/* Dashboard stats */
+body.rtl .olama-stats-grid {
+    direction: rtl;
+}
+
+/* Helper classes */
+body.rtl .text-left {
+    text-align: right !important;
+}
+
+body.rtl .text-right {
+    text-align: left !important;
+}
+
+body.rtl .float-left {
+    float: right !important;
+}
+
+body.rtl .float-right {
+    float: left !important;
+}
+
+body.rtl .ml-auto {
+    margin-right: auto !important;
+    margin-left: 0 !important;
+}
+
+body.rtl .mr-auto {
+    margin-left: auto !important;
+    margin-right: 0 !important;
+}
