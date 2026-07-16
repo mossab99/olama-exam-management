@@ -44,6 +44,7 @@ final class Olama_Exam_Management_Plugin
 
         add_action('admin_notices', array($this, 'dependency_notice'));
         add_filter('olama_dashboard_cards', array($this, 'register_hub_card'), 20);
+        add_action('olama_users_register_modules', array($this, 'register_access_module'));
 
         $this->available = $this->dependencies_available();
         if (!$this->available) {
@@ -152,5 +153,101 @@ final class Olama_Exam_Management_Plugin
         );
 
         return $cards;
+    }
+
+    /**
+     * Declare every user-facing Exam Management surface to OLAMA Users.
+     */
+    public function register_access_module()
+    {
+        if (!function_exists('olama_users_register_module')) {
+            return;
+        }
+
+        olama_users_register_module(array(
+            'id' => 'exam_management',
+            'plugin' => 'olama-exam-management',
+            'label' => __('Exam Management', 'olama-exam-management'),
+            'capability' => 'olama_access_exams_mgmt',
+            'items' => array(
+                array(
+                    'id' => 'exam_management.exams',
+                    'type' => 'submenu',
+                    'label' => __('Exam Management', 'olama-exam-management'),
+                    'capability' => 'olama_access_exams_mgmt',
+                    'url' => admin_url('admin.php?page=olama-exam-management'),
+                    'tabs' => array(
+                        array(
+                            'id' => 'exam_management.exams.schedule',
+                            'type' => 'tab',
+                            'label' => __('Exam Schedule', 'olama-exam-management'),
+                            'capability' => 'olama_manage_exams_schedule',
+                            'actions' => array(
+                                array('id' => 'exam_management.exams.schedule.save', 'type' => 'action', 'label' => __('Save and delete exams', 'olama-exam-management'), 'capability' => 'olama_manage_exams_schedule'),
+                                array('id' => 'exam_management.exams.schedule.bulk', 'type' => 'action', 'label' => __('Add exam subjects in bulk', 'olama-exam-management'), 'capability' => 'olama_manage_exams_schedule'),
+                                array('id' => 'exam_management.exams.schedule.review', 'type' => 'action', 'label' => __('Review files and download archive', 'olama-exam-management'), 'capability' => 'olama_manage_exams_schedule'),
+                            ),
+                        ),
+                        array(
+                            'id' => 'exam_management.exams.teacher',
+                            'type' => 'tab',
+                            'label' => __('Teacher Exams', 'olama-exam-management'),
+                            'capability' => 'olama_fill_exam_details',
+                            'actions' => array(
+                                array('id' => 'exam_management.exams.teacher.upload', 'type' => 'action', 'label' => __('Upload exam files', 'olama-exam-management'), 'capability' => 'olama_upload_exam_files'),
+                                array('id' => 'exam_management.exams.teacher.view_files', 'type' => 'action', 'label' => __('View and download exam files', 'olama-exam-management'), 'capability' => 'olama_fill_exam_details'),
+                            ),
+                        ),
+                    ),
+                ),
+                array(
+                    'id' => 'exam_management.halls',
+                    'type' => 'submenu',
+                    'label' => __('Exam Hall Distribution', 'olama-exam-management'),
+                    'capability' => 'olama_access_exam_halls',
+                    'url' => admin_url('admin.php?page=olama-exam-halls'),
+                    'tabs' => array(
+                        array(
+                            'id' => 'exam_management.halls.distribution',
+                            'type' => 'tab',
+                            'label' => __('Distribution', 'olama-exam-management'),
+                            'capability' => 'olama_manage_exam_halls',
+                            'actions' => array(
+                                array('id' => 'exam_management.halls.distribute', 'type' => 'action', 'label' => __('Distribute and move students', 'olama-exam-management'), 'capability' => 'olama_manage_exam_halls'),
+                                array('id' => 'exam_management.halls.invigilators', 'type' => 'action', 'label' => __('Assign invigilators and seats', 'olama-exam-management'), 'capability' => 'olama_manage_exam_halls'),
+                            ),
+                        ),
+                        array(
+                            'id' => 'exam_management.halls.attendance',
+                            'type' => 'tab',
+                            'label' => __('Attendance', 'olama-exam-management'),
+                            'capability' => 'olama_manage_hall_attendance',
+                            'actions' => array(
+                                array('id' => 'exam_management.halls.attendance.save', 'type' => 'action', 'label' => __('Save hall attendance', 'olama-exam-management'), 'capability' => 'olama_manage_hall_attendance'),
+                            ),
+                        ),
+                        array(
+                            'id' => 'exam_management.halls.notes',
+                            'type' => 'tab',
+                            'label' => __('Notes', 'olama-exam-management'),
+                            'capability' => 'olama_manage_hall_attendance',
+                            'actions' => array(
+                                array('id' => 'exam_management.halls.notes.save', 'type' => 'action', 'label' => __('Save behavior notes', 'olama-exam-management'), 'capability' => 'olama_manage_hall_attendance'),
+                                array('id' => 'exam_management.halls.notes.delete', 'type' => 'action', 'label' => __('Delete behavior notes', 'olama-exam-management'), 'capability' => 'olama_manage_exam_halls'),
+                            ),
+                        ),
+                        array(
+                            'id' => 'exam_management.halls.manage',
+                            'type' => 'tab',
+                            'label' => __('Halls', 'olama-exam-management'),
+                            'capability' => 'olama_manage_exam_halls',
+                            'actions' => array(
+                                array('id' => 'exam_management.halls.manage.save', 'type' => 'action', 'label' => __('Create, edit, and delete halls', 'olama-exam-management'), 'capability' => 'olama_manage_exam_halls'),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ));
     }
 }

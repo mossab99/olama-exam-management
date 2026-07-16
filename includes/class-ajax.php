@@ -114,6 +114,9 @@ class Olama_Exam_Management_Ajax
         if (empty($_POST['exam_id'])) {
             wp_send_json_error(__('Missing exam ID', 'olama-exam-management'));
         }
+        if (!Olama_School_Permissions::can('olama_upload_exam_files') && !Olama_School_Permissions::can('olama_manage_exams_schedule')) {
+            wp_send_json_error(__('Permission denied.', 'olama-exam-management'), 403);
+        }
 
         $result = Olama_School_Exam_Attachment::delete_attachment(intval($_POST['exam_id']));
         if (is_wp_error($result)) {
@@ -129,6 +132,9 @@ class Olama_Exam_Management_Ajax
         if (!$exam_id || !wp_verify_nonce($nonce, 'olama_download_file_' . $exam_id)) {
             wp_die(esc_html__('Security check failed', 'olama-exam-management'));
         }
+        if (!Olama_School_Permissions::can('olama_fill_exam_details') && !Olama_School_Permissions::can('olama_manage_exams_schedule')) {
+            wp_die(esc_html__('Unauthorized', 'olama-exam-management'), '', array('response' => 403));
+        }
         Olama_School_Exam_Attachment::stream_file($exam_id);
     }
 
@@ -136,6 +142,9 @@ class Olama_Exam_Management_Ajax
     {
         if (!check_ajax_referer('olama_save_exam', 'nonce', false)) {
             wp_send_json_error(__('Session expired or security check failed. Please refresh.', 'olama-exam-management'));
+        }
+        if (!Olama_School_Permissions::can('olama_fill_exam_details') && !Olama_School_Permissions::can('olama_manage_exams_schedule')) {
+            wp_send_json_error(__('Permission denied.', 'olama-exam-management'), 403);
         }
         $exam_id = intval($_POST['exam_id'] ?? 0);
         $info = Olama_School_Exam_Attachment::get_attachment_info($exam_id);
@@ -153,7 +162,7 @@ class Olama_Exam_Management_Ajax
     {
         global $wpdb;
         check_ajax_referer('olama_save_exam', 'nonce');
-        if (!Olama_School_Permissions::can('manage_options') && !current_user_can('editor')) {
+        if (!Olama_School_Permissions::can('olama_manage_exams_schedule')) {
             wp_send_json_error(__('Unauthorized', 'olama-exam-management'), 403);
         }
 
@@ -170,7 +179,7 @@ class Olama_Exam_Management_Ajax
 
     public function download_all_exams_zip()
     {
-        if (!Olama_School_Permissions::can('manage_options')) {
+        if (!Olama_School_Permissions::can('olama_manage_exams_schedule')) {
             wp_die(esc_html__('Unauthorized', 'olama-exam-management'));
         }
         Olama_School_Exam_Attachment::download_all_approved_zip(array(
@@ -184,6 +193,9 @@ class Olama_Exam_Management_Ajax
     public function get_semester_exams()
     {
         check_ajax_referer('olama_curriculum_nonce', 'nonce');
+        if (!Olama_School_Permissions::can('olama_access_exams_mgmt')) {
+            wp_send_json_error(__('Unauthorized', 'olama-exam-management'), 403);
+        }
         wp_send_json_success(Olama_School_Academic::get_semester_exams(intval($_POST['semester_id'] ?? 0)));
     }
 }

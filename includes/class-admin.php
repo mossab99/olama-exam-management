@@ -203,6 +203,12 @@ class Olama_Exam_Management_Admin
         if (!in_array($page, array('olama-exam-management', 'olama-exam-halls'), true)) {
             return;
         }
+        if ('olama-exam-management' === $page && !Olama_School_Permissions::can('olama_access_exams_mgmt')) {
+            return;
+        }
+        if ('olama-exam-halls' === $page && !Olama_School_Permissions::can('olama_access_exam_halls')) {
+            return;
+        }
 
         $this->enqueue_style('olama-exam-management-admin', 'assets/css/admin.css');
         wp_enqueue_style('jquery-ui-datepicker-css', 'https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css', array(), '1.13.2');
