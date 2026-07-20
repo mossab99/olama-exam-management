@@ -30,7 +30,6 @@ final class Olama_Exam_Management_Plugin
         }
 
         Olama_Exam_Management_DB::install();
-        Olama_School_Permissions::add_capabilities();
         update_option('olama_exam_management_db_version', OLAMA_EXAM_MANAGEMENT_VERSION);
     }
 
@@ -84,7 +83,6 @@ final class Olama_Exam_Management_Plugin
 
         Olama_Exam_Management_DB::install();
         Olama_Exam_Hall::maybe_migrate();
-        Olama_School_Permissions::add_capabilities();
         update_option('olama_exam_management_db_version', OLAMA_EXAM_MANAGEMENT_VERSION);
     }
 
