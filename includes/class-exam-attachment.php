@@ -103,7 +103,7 @@ class Olama_School_Exam_Attachment
         global $wpdb;
 
         // Security check
-        if (!Olama_School_Permissions::can('olama_upload_exam_files')) {
+        if (!Olama_School_Exam::current_user_can_access_exam($exam_id, 'olama_upload_exam_files')) {
             return new WP_Error('unauthorized', __('Unauthorized', 'olama-school'));
         }
 
@@ -220,15 +220,7 @@ class Olama_School_Exam_Attachment
             wp_die(__('File not found.', 'olama-school'));
         }
 
-        // Permission check
-        $allow = false;
-        if (Olama_School_Permissions::can('manage_options') || current_user_can('editor')) {
-            $allow = true; // Admin/Supervisors
-        } elseif ($attachment->user_id == get_current_user_id()) {
-            $allow = true; // Owner
-        }
-
-        if (!$allow) {
+        if (!Olama_School_Exam::current_user_can_access_exam($exam_id, 'olama_fill_exam_details')) {
             wp_die(__('You do not have permission to download this file.', 'olama-school'));
         }
 
@@ -303,7 +295,7 @@ class Olama_School_Exam_Attachment
      */
     public static function download_all_approved_zip($filters)
     {
-        if (!Olama_School_Permissions::can('manage_options')) {
+        if (!Olama_School_Permissions::can('olama_manage_exams_schedule')) {
             wp_die(__('Unauthorized', 'olama-school'));
         }
 
@@ -368,6 +360,10 @@ class Olama_School_Exam_Attachment
             return new WP_Error('not_found', __('Attachment not found.', 'olama-school'));
         }
 
+        if (!Olama_School_Exam::current_user_can_access_exam($exam_id, 'olama_upload_exam_files')) {
+            return new WP_Error('unauthorized', __('You are not assigned to this exam.', 'olama-school'));
+        }
+
         // 1. Delete physical file
         $filepath = self::get_upload_base_dir() . $attachment->stored_filename;
         if (file_exists($filepath)) {
@@ -383,4 +379,3 @@ class Olama_School_Exam_Attachment
         return true;
     }
 }
-

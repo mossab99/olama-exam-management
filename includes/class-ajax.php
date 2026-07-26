@@ -28,7 +28,8 @@ class Olama_Exam_Management_Ajax
         if (!Olama_School_Permissions::can('olama_manage_exams_schedule') && !Olama_School_Permissions::can('olama_fill_exam_details')) {
             wp_send_json_error(__('Permission denied.', 'olama-exam-management'), 403);
         }
-        if (empty($_POST['academic_year_id']) || empty($_POST['semester_id']) || empty($_POST['grade_id']) || empty($_POST['subject_id'])) {
+        $is_manager = Olama_School_Permissions::can('olama_manage_exams_schedule');
+        if ($is_manager && (empty($_POST['academic_year_id']) || empty($_POST['semester_id']) || empty($_POST['grade_id']) || empty($_POST['subject_id']))) {
             wp_send_json_error(__('Required fields are missing.', 'olama-exam-management'));
         }
         if (isset($_POST['exam_date'])) {
@@ -147,6 +148,9 @@ class Olama_Exam_Management_Ajax
             wp_send_json_error(__('Permission denied.', 'olama-exam-management'), 403);
         }
         $exam_id = intval($_POST['exam_id'] ?? 0);
+        if (!Olama_School_Exam::current_user_can_access_exam($exam_id, 'olama_fill_exam_details')) {
+            wp_send_json_error(__('You are not assigned to this exam.', 'olama-exam-management'), 403);
+        }
         $info = Olama_School_Exam_Attachment::get_attachment_info($exam_id);
         if ($info) {
             $info->download_url = add_query_arg(array(
@@ -179,6 +183,7 @@ class Olama_Exam_Management_Ajax
 
     public function download_all_exams_zip()
     {
+        check_admin_referer('olama_download_all_exams_zip');
         if (!Olama_School_Permissions::can('olama_manage_exams_schedule')) {
             wp_die(esc_html__('Unauthorized', 'olama-exam-management'));
         }

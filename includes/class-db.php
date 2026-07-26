@@ -13,11 +13,10 @@ final class Olama_Exam_Management_DB
 
         $charset_collate = $wpdb->get_charset_collate();
         $tables = self::schemas($wpdb->prefix, $charset_collate);
-        foreach ($tables as $table_name => $sql) {
-            $full_name = $wpdb->prefix . $table_name;
-            if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $full_name)) !== $full_name) {
-                dbDelta($sql);
-            }
+        foreach ($tables as $sql) {
+            // dbDelta must also run for existing tables so type, column, and
+            // index changes are applied during plugin upgrades.
+            dbDelta($sql);
         }
     }
 
@@ -81,8 +80,8 @@ final class Olama_Exam_Management_DB
             'olama_exam_hall_assignments' => "CREATE TABLE {$prefix}olama_exam_hall_assignments (
                 id mediumint(9) NOT NULL AUTO_INCREMENT,
                 hall_id mediumint(9) NOT NULL,
-                student_id mediumint(9) NOT NULL,
-                student_uid varchar(50) DEFAULT NULL,
+                student_id bigint(20) UNSIGNED NOT NULL,
+                student_uid varchar(100) DEFAULT NULL,
                 academic_year_id mediumint(9) NOT NULL,
                 semester_id mediumint(9) NOT NULL DEFAULT 0,
                 seat_number smallint(6) DEFAULT NULL,
@@ -100,8 +99,8 @@ final class Olama_Exam_Management_DB
                 hall_id mediumint(9) NOT NULL,
                 academic_year_id mediumint(9) NOT NULL,
                 semester_id mediumint(9) NOT NULL DEFAULT 0,
-                student_id mediumint(9) NOT NULL,
-                student_uid varchar(50) DEFAULT NULL,
+                student_id bigint(20) UNSIGNED NOT NULL,
+                student_uid varchar(100) DEFAULT NULL,
                 exam_date date NOT NULL,
                 session_label varchar(100) DEFAULT '' NOT NULL,
                 status varchar(20) DEFAULT 'present' NOT NULL,
@@ -116,8 +115,8 @@ final class Olama_Exam_Management_DB
             'olama_exam_hall_notes' => "CREATE TABLE {$prefix}olama_exam_hall_notes (
                 id mediumint(9) NOT NULL AUTO_INCREMENT,
                 hall_id mediumint(9) NOT NULL,
-                student_id mediumint(9) NOT NULL,
-                student_uid varchar(50) DEFAULT NULL,
+                student_id bigint(20) UNSIGNED NOT NULL,
+                student_uid varchar(100) DEFAULT NULL,
                 exam_date date NOT NULL,
                 semester_id mediumint(9) NOT NULL DEFAULT 0,
                 note_type varchar(50) DEFAULT 'ملتزم' NOT NULL,

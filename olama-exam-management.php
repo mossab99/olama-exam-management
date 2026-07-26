@@ -3,7 +3,7 @@
  * Plugin Name: Olama Exam Management
  * Plugin URI: https://olama.online
  * Description: Exam schedules, teacher exam files, and exam hall distribution for Olama School.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Olama
  * Text Domain: olama-exam-management
  * Domain Path: /languages
@@ -14,7 +14,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('OLAMA_EXAM_MANAGEMENT_VERSION', '1.0.0');
+define('OLAMA_EXAM_MANAGEMENT_VERSION', '1.1.0');
+define('OLAMA_EXAM_MANAGEMENT_DB_VERSION', '1.1.0');
 define('OLAMA_EXAM_MANAGEMENT_FILE', __FILE__);
 define('OLAMA_EXAM_MANAGEMENT_PATH', plugin_dir_path(__FILE__));
 define('OLAMA_EXAM_MANAGEMENT_URL', plugin_dir_url(__FILE__));

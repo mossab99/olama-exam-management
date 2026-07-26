@@ -30,7 +30,7 @@ final class Olama_Exam_Management_Plugin
         }
 
         Olama_Exam_Management_DB::install();
-        update_option('olama_exam_management_db_version', OLAMA_EXAM_MANAGEMENT_VERSION);
+        update_option('olama_exam_management_db_version', OLAMA_EXAM_MANAGEMENT_DB_VERSION);
     }
 
     private function __construct()
@@ -77,13 +77,13 @@ final class Olama_Exam_Management_Plugin
 
     public function maybe_update_schema()
     {
-        if (get_option('olama_exam_management_db_version') === OLAMA_EXAM_MANAGEMENT_VERSION) {
+        if (get_option('olama_exam_management_db_version') === OLAMA_EXAM_MANAGEMENT_DB_VERSION) {
             return;
         }
 
         Olama_Exam_Management_DB::install();
         Olama_Exam_Hall::maybe_migrate();
-        update_option('olama_exam_management_db_version', OLAMA_EXAM_MANAGEMENT_VERSION);
+        update_option('olama_exam_management_db_version', OLAMA_EXAM_MANAGEMENT_DB_VERSION);
     }
 
     public function dependency_notice()

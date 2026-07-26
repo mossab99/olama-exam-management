@@ -10,6 +10,63 @@ if (!defined('ABSPATH')) {
 class Olama_School_Exam
 {
     /**
+     * Determine whether an exam is assigned to a synchronized teacher.
+     *
+     * The WordPress user ID is the primary relationship. The employee ID is
+     * also checked so assignments survive account reprovisioning.
+     */
+    public static function is_assigned_to_teacher($exam_id, $user_id = 0)
+    {
+        global $wpdb;
+
+        $exam_id = absint($exam_id);
+        $user_id = $user_id ? absint($user_id) : get_current_user_id();
+        if (!$exam_id || !$user_id) {
+            return false;
+        }
+
+        $employee_id = '';
+        $profile_table = $wpdb->prefix . 'olama_core_staff_profiles';
+        $profile_pattern = $wpdb->esc_like($profile_table);
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $profile_pattern)) === $profile_table) {
+            $employee_id = (string) $wpdb->get_var($wpdb->prepare(
+                "SELECT employee_id FROM {$profile_table} WHERE user_id = %d LIMIT 1",
+                $user_id
+            ));
+        }
+
+        $query = "SELECT 1
+                  FROM {$wpdb->prefix}olama_exams e
+                  INNER JOIN {$wpdb->prefix}olama_teacher_assignments ta
+                    ON ta.academic_year_id = e.academic_year_id
+                   AND ta.subject_id = e.subject_id
+                  WHERE e.id = %d
+                    AND (ta.teacher_id = %d";
+        $params = array($exam_id, $user_id);
+
+        if ('' !== $employee_id) {
+            $query .= ' OR ta.teacher_employee_id = %s';
+            $params[] = $employee_id;
+        }
+
+        $query .= ') LIMIT 1';
+        return (bool) $wpdb->get_var($wpdb->prepare($query, $params));
+    }
+
+    /**
+     * Central authorization rule for teacher-facing exam operations.
+     */
+    public static function current_user_can_access_exam($exam_id, $capability = 'olama_fill_exam_details')
+    {
+        if (Olama_School_Permissions::can('olama_manage_exams_schedule')) {
+            return true;
+        }
+
+        return Olama_School_Permissions::can($capability)
+            && self::is_assigned_to_teacher($exam_id, get_current_user_id());
+    }
+
+    /**
      * Get student specific exams (Direct Resolver)
      */
     public static function get_student_specific_exams($student_uid)
@@ -109,6 +166,28 @@ class Olama_School_Exam
         global $wpdb;
 
         $exam_id = !empty($data['id']) ? intval($data['id']) : 0;
+
+        if (!Olama_School_Permissions::can('olama_manage_exams_schedule')) {
+            if (!self::current_user_can_access_exam($exam_id, 'olama_fill_exam_details')) {
+                return new WP_Error('unauthorized_exam', __('You are not assigned to this exam.', 'olama-exam-management'));
+            }
+
+            // Teachers may fill teaching material only. Schedule context,
+            // approval state, and supervisor fields remain manager-owned.
+            $teacher_fields = array(
+                'id',
+                'description',
+                'student_book_material',
+                'workbook_material',
+                'exercise_book_material',
+                'notebook_material',
+                'teacher_notes',
+                'exam_material_json',
+            );
+            $data = array_intersect_key($data, array_fill_keys($teacher_fields, true));
+            $data['id'] = $exam_id;
+        }
+
         $existing = null;
         if ($exam_id) {
             $existing = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}olama_exams WHERE id = %d", $exam_id), ARRAY_A);
@@ -258,6 +337,17 @@ class Olama_School_Exam
     public static function get_teacher_exams($teacher_id, $academic_year_id, $semester_exam_id)
     {
         global $wpdb;
+        $teacher_id = absint($teacher_id);
+        $employee_id = '';
+        $profile_table = $wpdb->prefix . 'olama_core_staff_profiles';
+        $profile_pattern = $wpdb->esc_like($profile_table);
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $profile_pattern)) === $profile_table) {
+            $employee_id = (string) $wpdb->get_var($wpdb->prepare(
+                "SELECT employee_id FROM {$profile_table} WHERE user_id = %d LIMIT 1",
+                $teacher_id
+            ));
+        }
+
         $query = "SELECT e.*, s.subject_name, g.grade_name, a.id as attachment_id, a.file_status as attachment_status 
                   FROM {$wpdb->prefix}olama_exams e
                   JOIN {$wpdb->prefix}olama_subjects s ON e.subject_id = s.id
@@ -268,11 +358,18 @@ class Olama_School_Exam
                   AND e.subject_id IN (
                       SELECT DISTINCT subject_id 
                       FROM {$wpdb->prefix}olama_teacher_assignments 
-                      WHERE teacher_id = %d AND academic_year_id = %d
+                      WHERE (teacher_id = %d";
+        $params = array($academic_year_id, $semester_exam_id, $teacher_id);
+        if ('' !== $employee_id) {
+            $query .= ' OR teacher_employee_id = %s';
+            $params[] = $employee_id;
+        }
+        $query .= ") AND academic_year_id = %d
                   )
                   ORDER BY e.exam_date ASC";
+        $params[] = $academic_year_id;
 
-        return $wpdb->get_results($wpdb->prepare($query, $academic_year_id, $semester_exam_id, $teacher_id, $academic_year_id));
+        return $wpdb->get_results($wpdb->prepare($query, $params));
     }
 
     /**
@@ -319,4 +416,3 @@ class Olama_School_Exam
         ));
     }
 }
-

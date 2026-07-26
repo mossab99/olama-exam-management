@@ -42,8 +42,18 @@ if ($selected_semester_exam_id) {
                 <span class="dashicons dashicons-database-add" style="margin-top: 4px;"></span>
                 <?php echo Olama_School_Helpers::translate('Init All Subjects'); ?>
             </button>
-            <?php if (Olama_School_Permissions::can('manage_options') && !empty($exams)): ?>
-                <a href="<?php echo admin_url('admin-ajax.php?action=olama_download_all_exams_zip&academic_year_id=' . $selected_year_id . '&semester_id=' . $selected_semester_id . '&semester_exam_id=' . $selected_semester_exam_id . '&grade_id=' . $selected_grade_id); ?>"
+            <?php if (Olama_School_Permissions::can('olama_manage_exams_schedule') && !empty($exams)): ?>
+                <?php
+                $archive_url = add_query_arg(array(
+                    'action' => 'olama_download_all_exams_zip',
+                    'academic_year_id' => $selected_year_id,
+                    'semester_id' => $selected_semester_id,
+                    'semester_exam_id' => $selected_semester_exam_id,
+                    'grade_id' => $selected_grade_id,
+                ), admin_url('admin-ajax.php'));
+                $archive_url = wp_nonce_url($archive_url, 'olama_download_all_exams_zip');
+                ?>
+                <a href="<?php echo esc_url($archive_url); ?>"
                     class="button button-primary"
                     style="display: flex; align-items: center; gap: 5px; background: #6366f1; border-color: #4f46e5;">
                     <span class="dashicons dashicons-archive" style="margin-top: 4px;"></span>
