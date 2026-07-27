@@ -21,17 +21,13 @@ $year_id     = $active_year ? $active_year->id : 0;
 $grades      = Olama_School_Grade::get_grades();
 $halls       = Olama_Exam_Hall::get_halls($year_id);
 
-// Active semester
+// Active academic context is owned by Olama Core.
 global $wpdb;
-$active_semester    = null;
-$active_semester_id = 0;
-if ($year_id) {
-    $active_semester    = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM {$wpdb->prefix}olama_semesters
-         WHERE academic_year_id = %d AND is_active = 1 LIMIT 1",
-        $year_id
-    ));
-    $active_semester_id = $active_semester ? $active_semester->id : 0;
+$active_semester = function_exists('olama_core') ? olama_core()->academic_context()->current_semester() : null;
+$active_semester_id = $active_semester ? (int) $active_semester->id : 0;
+if ($active_semester && (int) $active_semester->academic_year_id !== (int) $year_id) {
+    $active_semester = null;
+    $active_semester_id = 0;
 }
 
 // Quick counts for stat bar
@@ -573,4 +569,3 @@ foreach ($all_invigilators as $inv) {
         </div>
     </div>
 </div>
-
