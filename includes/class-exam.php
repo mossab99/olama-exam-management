@@ -26,7 +26,7 @@ class Olama_School_Exam
         }
 
         $employee_id = '';
-        $profile_table = $wpdb->prefix . 'olama_core_staff_profiles';
+        $profile_table = olama_core()->read_models()->table('staff_profiles');
         $profile_pattern = $wpdb->esc_like($profile_table);
         if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $profile_pattern)) === $profile_table) {
             $employee_id = (string) $wpdb->get_var($wpdb->prepare(
@@ -339,7 +339,7 @@ class Olama_School_Exam
         global $wpdb;
         $teacher_id = absint($teacher_id);
         $employee_id = '';
-        $profile_table = $wpdb->prefix . 'olama_core_staff_profiles';
+        $profile_table = olama_core()->read_models()->table('staff_profiles');
         $profile_pattern = $wpdb->esc_like($profile_table);
         if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $profile_pattern)) === $profile_table) {
             $employee_id = (string) $wpdb->get_var($wpdb->prepare(
