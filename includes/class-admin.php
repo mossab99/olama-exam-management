@@ -16,8 +16,9 @@ class Olama_Exam_Management_Admin
 
     public function register_menus()
     {
-        $can_access_exams = Olama_School_Permissions::can('olama_access_exams_mgmt');
-        $parent_capability = $can_access_exams ? 'olama_access_exams_mgmt' : 'olama_access_exam_halls';
+        $exam_capability = $this->exam_management_capability();
+        $can_access_exams = $this->can_access_exam_management();
+        $parent_capability = $can_access_exams ? $exam_capability : 'olama_access_exam_halls';
 
         add_menu_page(
             __('Olama Exams', 'olama-exam-management'),
@@ -33,7 +34,7 @@ class Olama_Exam_Management_Admin
             'olama-exam-management',
             __('Exam Management', 'olama-exam-management'),
             __('Exam Management', 'olama-exam-management'),
-            'olama_access_exams_mgmt',
+            $exam_capability,
             'olama-exam-management',
             array($this, 'render_exam_management_page')
         );
@@ -50,7 +51,7 @@ class Olama_Exam_Management_Admin
 
     public function render_module_landing()
     {
-        if (Olama_School_Permissions::can('olama_access_exams_mgmt')) {
+        if ($this->can_access_exam_management()) {
             $this->render_exam_management_page();
             return;
         }
@@ -203,7 +204,7 @@ class Olama_Exam_Management_Admin
         if (!in_array($page, array('olama-exam-management', 'olama-exam-halls'), true)) {
             return;
         }
-        if ('olama-exam-management' === $page && !Olama_School_Permissions::can('olama_access_exams_mgmt')) {
+        if ('olama-exam-management' === $page && !$this->can_access_exam_management()) {
             return;
         }
         if ('olama-exam-halls' === $page && !Olama_School_Permissions::can('olama_access_exam_halls')) {
@@ -263,5 +264,30 @@ class Olama_Exam_Management_Admin
     private function asset_version($path)
     {
         return OLAMA_EXAM_MANAGEMENT_VERSION . '-' . (file_exists($path) ? filemtime($path) : '0');
+    }
+
+    /**
+     * Return a capability the current user owns that can open an exam tab.
+     *
+     * OLAMA Users normally grants the module access capability together with
+     * child capabilities. Checking the children as fallbacks keeps older and
+     * manually-created roles compatible with the actual tab permissions.
+     */
+    private function exam_management_capability()
+    {
+        foreach (array('olama_access_exams_mgmt', 'olama_manage_exams_schedule', 'olama_fill_exam_details') as $capability) {
+            if (Olama_School_Permissions::can($capability)) {
+                return $capability;
+            }
+        }
+
+        return 'olama_access_exams_mgmt';
+    }
+
+    private function can_access_exam_management()
+    {
+        return Olama_School_Permissions::can('olama_access_exams_mgmt')
+            || Olama_School_Permissions::can('olama_manage_exams_schedule')
+            || Olama_School_Permissions::can('olama_fill_exam_details');
     }
 }

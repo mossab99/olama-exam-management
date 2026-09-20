@@ -43,7 +43,13 @@ final class Olama_Exam_Management_Plugin
 
         add_action('admin_notices', array($this, 'dependency_notice'));
         add_filter('olama_dashboard_cards', array($this, 'register_hub_card'), 20);
-        add_action('olama_users_register_modules', array($this, 'register_access_module'));
+        /*
+         * Exam Engine registers its OLAMA Users module at priority 20. Register
+         * this module afterwards so OLAMA Users resolves the shared
+         * "olama-exam*" admin-menu namespace to Exam Engine first instead of
+         * incorrectly discovering its submenus under Exam Management.
+         */
+        add_action('olama_users_register_modules', array($this, 'register_access_module'), 30);
 
         $this->available = $this->dependencies_available();
         if (!$this->available) {
@@ -114,8 +120,9 @@ final class Olama_Exam_Management_Plugin
         }
         unset($card);
 
-        $can_access_exams = Olama_School_Permissions::can('olama_access_exams_mgmt');
-        $card_capability = $can_access_exams ? 'olama_access_exams_mgmt' : 'olama_access_exam_halls';
+        $exam_capability = $this->exam_management_capability();
+        $can_access_exams = $this->can_access_exam_management();
+        $card_capability = $can_access_exams ? $exam_capability : 'olama_access_exam_halls';
         $primary_url = $can_access_exams
             ? admin_url('admin.php?page=olama-exam-management')
             : admin_url('admin.php?page=olama-exam-halls');
@@ -136,7 +143,7 @@ final class Olama_Exam_Management_Plugin
                     'label'      => __('Exam Management', 'olama-exam-management'),
                     'icon'       => 'dashicons-calendar-alt',
                     'url'        => admin_url('admin.php?page=olama-exam-management'),
-                    'capability' => 'olama_access_exams_mgmt',
+                    'capability' => $exam_capability,
                     'color'      => '#ea580c',
                 ),
                 array(
@@ -151,6 +158,24 @@ final class Olama_Exam_Management_Plugin
         );
 
         return $cards;
+    }
+
+    private function exam_management_capability()
+    {
+        foreach (array('olama_access_exams_mgmt', 'olama_manage_exams_schedule', 'olama_fill_exam_details') as $capability) {
+            if (Olama_School_Permissions::can($capability)) {
+                return $capability;
+            }
+        }
+
+        return 'olama_access_exams_mgmt';
+    }
+
+    private function can_access_exam_management()
+    {
+        return Olama_School_Permissions::can('olama_access_exams_mgmt')
+            || Olama_School_Permissions::can('olama_manage_exams_schedule')
+            || Olama_School_Permissions::can('olama_fill_exam_details');
     }
 
     /**
