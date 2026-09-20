@@ -20,7 +20,7 @@ class Olama_Exam_Management_Admin
         $can_access_exams = $this->can_access_exam_management();
         $parent_capability = $can_access_exams ? $exam_capability : 'olama_access_exam_halls';
 
-        add_menu_page(
+        $menu_hook = add_menu_page(
             __('Olama Exams', 'olama-exam-management'),
             __('Olama Exams', 'olama-exam-management'),
             $parent_capability,
@@ -30,7 +30,7 @@ class Olama_Exam_Management_Admin
             28
         );
 
-        add_submenu_page(
+        $exam_submenu_hook = add_submenu_page(
             'olama-exam-management',
             __('Exam Management', 'olama-exam-management'),
             __('Exam Management', 'olama-exam-management'),
@@ -38,6 +38,15 @@ class Olama_Exam_Management_Admin
             'olama-exam-management',
             array($this, 'render_exam_management_page')
         );
+
+        /*
+         * WordPress gives a top-level page and its same-slug submenu the same
+         * hook. Keep the explicit submenu entry/label, but let the top-level
+         * landing callback render it so the page content is not printed twice.
+         */
+        if ($menu_hook && $menu_hook === $exam_submenu_hook) {
+            remove_action($exam_submenu_hook, array($this, 'render_exam_management_page'));
+        }
 
         add_submenu_page(
             'olama-exam-management',

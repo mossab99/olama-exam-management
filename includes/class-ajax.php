@@ -17,6 +17,8 @@ class Olama_Exam_Management_Ajax
         add_action('wp_ajax_olama_save_exam_attachment_comment', array($this, 'save_exam_attachment_comment'));
         add_action('wp_ajax_olama_download_all_exams_zip', array($this, 'download_all_exams_zip'));
         add_action('wp_ajax_olama_get_semester_exams', array($this, 'get_semester_exams'));
+        add_action('wp_ajax_olama_exam_get_units', array($this, 'get_units'));
+        add_action('wp_ajax_olama_exam_get_lessons', array($this, 'get_lessons'));
     }
 
     public function save_exam()
@@ -202,5 +204,82 @@ class Olama_Exam_Management_Ajax
             wp_send_json_error(__('Unauthorized', 'olama-exam-management'), 403);
         }
         wp_send_json_success(Olama_School_Academic::get_semester_exams(intval($_POST['semester_id'] ?? 0)));
+    }
+
+    public function get_units()
+    {
+        check_ajax_referer('olama_save_exam', 'nonce');
+        $exam = $this->authorize_curriculum_lookup();
+
+        $grade_id = absint($_POST['grade_id'] ?? 0);
+        $subject_id = absint($_POST['subject_id'] ?? 0);
+        $semester_id = absint($_POST['semester_id'] ?? 0);
+        if (!$grade_id || !$subject_id || !$semester_id) {
+            wp_send_json_error(__('Missing curriculum parameters.', 'olama-exam-management'), 400);
+        }
+        if (
+            $exam
+            && (
+                $grade_id !== (int) $exam->grade_id
+                || $subject_id !== (int) $exam->subject_id
+                || $semester_id !== (int) $exam->semester_id
+            )
+        ) {
+            wp_send_json_error(__('The curriculum does not belong to this exam.', 'olama-exam-management'), 403);
+        }
+
+        wp_send_json_success(Olama_School_Unit::get_units($subject_id, $grade_id, $semester_id));
+    }
+
+    public function get_lessons()
+    {
+        check_ajax_referer('olama_save_exam', 'nonce');
+        $exam = $this->authorize_curriculum_lookup();
+
+        $unit_id = absint($_POST['unit_id'] ?? 0);
+        if (!$unit_id) {
+            wp_send_json_error(__('Missing curriculum unit.', 'olama-exam-management'), 400);
+        }
+        $unit = Olama_School_Unit::get_unit($unit_id);
+        if (
+            $exam
+            && (
+                !$unit
+                || (int) $unit->grade_id !== (int) $exam->grade_id
+                || (int) $unit->subject_id !== (int) $exam->subject_id
+                || (int) $unit->semester_id !== (int) $exam->semester_id
+            )
+        ) {
+            wp_send_json_error(__('The curriculum unit does not belong to this exam.', 'olama-exam-management'), 403);
+        }
+
+        wp_send_json_success(Olama_School_Lesson::get_lessons($unit_id));
+    }
+
+    /**
+     * Managers may inspect any exam curriculum. Teachers are restricted to an
+     * exam assigned to their own account.
+     */
+    private function authorize_curriculum_lookup()
+    {
+        if (Olama_School_Permissions::can('olama_manage_exams_schedule')) {
+            return null;
+        }
+
+        $exam_id = absint($_POST['exam_id'] ?? 0);
+        if (
+            !Olama_School_Permissions::can('olama_fill_exam_details')
+            || !$exam_id
+            || !Olama_School_Exam::current_user_can_access_exam($exam_id, 'olama_fill_exam_details')
+        ) {
+            wp_send_json_error(__('You are not assigned to this exam.', 'olama-exam-management'), 403);
+        }
+
+        $exam = Olama_School_Exam::get_exam($exam_id);
+        if (!$exam) {
+            wp_send_json_error(__('Exam not found.', 'olama-exam-management'), 404);
+        }
+
+        return $exam;
     }
 }

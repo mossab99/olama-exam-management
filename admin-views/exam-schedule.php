@@ -907,8 +907,9 @@ if ($selected_semester_exam_id) {
 
         function loadUnits(gradeId, subjectId, semesterId, callback) {
             $.post(ajaxurl, {
-                action: 'olama_get_units',
-                nonce: olama_admin_ajax.nonce,
+                action: 'olama_exam_get_units',
+                nonce: $('#olama_exam_nonce_field').val() || $('#olama_material_nonce_field').val(),
+                exam_id: $('#material_exam_id').val(),
                 grade_id: gradeId,
                 subject_id: subjectId,
                 semester_id: semesterId
@@ -926,8 +927,9 @@ if ($selected_semester_exam_id) {
                 populateLessonSelect(selectElement, unitLessonsCache[unitId], selectedLessonId);
             } else {
                 $.post(ajaxurl, {
-                    action: 'olama_get_lessons',
-                    nonce: olama_admin_ajax.nonce,
+                    action: 'olama_exam_get_lessons',
+                    nonce: $('#olama_exam_nonce_field').val() || $('#olama_material_nonce_field').val(),
+                    exam_id: $('#material_exam_id').val(),
                     unit_id: unitId
                 }, function (response) {
                     if (response.success) {
