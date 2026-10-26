@@ -159,6 +159,30 @@ class Olama_School_Exam
     }
 
     /**
+     * Parse a calendar date without PHP's automatic overflow or format guessing.
+     */
+    public static function normalize_exam_date($value)
+    {
+        if (!is_string($value) || strpos($value, "\0") !== false) {
+            return '';
+        }
+
+        $value = trim($value);
+        $formats = array('Y-m-d' => '/^\d{4}-\d{2}-\d{2}$/D', 'd-m-Y' => '/^\d{2}-\d{2}-\d{4}$/D');
+        foreach ($formats as $format => $pattern) {
+            if (!preg_match($pattern, $value)) {
+                continue;
+            }
+            $date = DateTimeImmutable::createFromFormat('!' . $format, $value);
+            if ($date && $date->format($format) === $value && (int) $date->format('Y') >= 1000) {
+                return $date->format('Y-m-d');
+            }
+        }
+
+        return '';
+    }
+
+    /**
      * Save an exam
      */
     public static function save_exam($data)
@@ -193,6 +217,22 @@ class Olama_School_Exam
             $existing = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}olama_exams WHERE id = %d", $exam_id), ARRAY_A);
         }
 
+        // Normalize here so AJAX, regular forms and bulk creation save the same date.
+        if (array_key_exists('exam_date', $data) || !$exam_id) {
+            $date = self::normalize_exam_date($data['exam_date'] ?? '');
+            if (!$date) {
+                return new WP_Error('invalid_exam_date', __('Please enter a valid exam date in DD-MM-YYYY format.', 'olama-exam-management'));
+            }
+            $data['exam_date'] = $date;
+
+            $master_id = intval($data['semester_exam_id'] ?? ($existing['semester_exam_id'] ?? 0));
+            $master = $master_id ? Olama_School_Academic::get_semester_exam($master_id) : null;
+            if ($master && ((!empty($master->start_date) && $date < $master->start_date)
+                || (!empty($master->end_date) && $date > $master->end_date))) {
+                return new WP_Error('exam_date_out_of_range', __('Exam date must be within the allowed exam period.', 'olama-exam-management'));
+            }
+        }
+
         $fields = array();
         $keys = array(
             'academic_year_id' => 'intval',
@@ -221,7 +261,7 @@ class Olama_School_Exam
 
         // Date validation: Relaxed conflict check
         if ($val_date && $val_grade) {
-            $sanitized_val_date = Olama_School_Helpers::sanitize_date($val_date);
+            $sanitized_val_date = self::normalize_exam_date($val_date);
 
             // Only block if BOTH the current save is for 'approved' status 
             // AND there is another 'approved' exam on the same day.

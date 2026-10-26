@@ -35,7 +35,7 @@ class Olama_Exam_Management_Ajax
             wp_send_json_error(__('Required fields are missing.', 'olama-exam-management'));
         }
         if (isset($_POST['exam_date'])) {
-            $_POST['exam_date'] = Olama_School_Helpers::sanitize_date(wp_unslash($_POST['exam_date']));
+            $_POST['exam_date'] = wp_unslash($_POST['exam_date']);
         }
 
         $result = Olama_School_Exam::save_exam($_POST);
@@ -45,7 +45,12 @@ class Olama_Exam_Management_Ajax
         if (false === $result) {
             wp_send_json_error(__('Database error: Could not save exam.', 'olama-exam-management'));
         }
-        wp_send_json_success(array('message' => Olama_School_Helpers::translate('Exam saved successfully.')));
+        $response = array('message' => Olama_School_Helpers::translate('Exam saved successfully.'));
+        if ($is_manager && isset($_POST['exam_date'])) {
+            $response['exam_date'] = Olama_School_Exam::normalize_exam_date($_POST['exam_date']);
+            $response['formatted_date'] = Olama_School_Helpers::format_date($response['exam_date']);
+        }
+        wp_send_json_success($response);
     }
 
     public function bulk_add_exam_subjects()

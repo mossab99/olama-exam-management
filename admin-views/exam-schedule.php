@@ -143,11 +143,11 @@ if ($selected_semester_exam_id) {
                 <span style="color: #ef4444; font-weight: 700; margin-left: 8px;"><span
                         class="dashicons dashicons-calendar-alt" style="font-size: 18px; margin-top:2px;"></span>
                     <?php echo Olama_School_Helpers::translate('Allowed Period'); ?>:</span>
-                <span style="font-weight: 800; color: #1e293b; font-size: 15px;">
-                    <?php echo Olama_School_Helpers::format_date($current_master_exam->start_date); ?>
+                <bdi dir="ltr" style="font-weight: 800; color: #1e293b; font-size: 15px;">
+                    <?php echo esc_html(Olama_School_Helpers::format_date($current_master_exam->start_date)); ?>
                     <span style="margin: 0 5px;">-</span>
-                    <?php echo Olama_School_Helpers::format_date($current_master_exam->end_date); ?>
-                </span>
+                    <?php echo esc_html(Olama_School_Helpers::format_date($current_master_exam->end_date)); ?>
+                </bdi>
             </div>
         </div>
     <?php endif; ?>
@@ -210,7 +210,7 @@ if ($selected_semester_exam_id) {
                                 ?></small>
                             </td>
                             <td class="date-column">
-                                <div class="date-display"><?php echo $exam->formatted_date; ?></div>
+                                <div class="date-display" dir="ltr"><?php echo esc_html($exam->formatted_date); ?></div>
                                 <div class="date-edit" style="display: none;">
                                     <input type="text" class="olama-datepicker inline-date-input"
                                         data-exam-id="<?php echo $exam->id; ?>"
@@ -219,6 +219,7 @@ if ($selected_semester_exam_id) {
                                         data-grade-id="<?php echo $exam->grade_id; ?>"
                                         data-subject-id="<?php echo $exam->subject_id; ?>"
                                         data-semester-exam-id="<?php echo $exam->semester_exam_id; ?>"
+                                        data-saved-date="<?php echo esc_attr($exam->exam_date); ?>" dir="ltr"
                                         value="<?php echo $exam->formatted_date; ?>"
                                         style="width: 100px; padding: 4px; font-size: 12px;">
                                     <div class="inline-actions" style="margin-top: 5px;">
@@ -499,7 +500,7 @@ if ($selected_semester_exam_id) {
                     <div class="form-field">
                         <label><?php echo Olama_School_Helpers::translate('Exam Date'); ?> *</label>
                         <input type="text" name="exam_date" id="add_exam_date" required class="olama-datepicker"
-                            autocomplete="off">
+                            autocomplete="off" dir="ltr" placeholder="DD-MM-YYYY">
                     </div>
 
                     <input type="hidden" name="status" value="draft">
@@ -724,37 +725,59 @@ if ($selected_semester_exam_id) {
     }
 
     jQuery(document).ready(function ($) {
-        var master_start = <?php echo $current_master_exam ? '"' . $current_master_exam->start_date . '"' : 'null'; ?>;
-        var master_end = <?php echo $current_master_exam ? '"' . $current_master_exam->end_date . '"' : 'null'; ?>;
+        var masterExams = <?php echo wp_json_encode($semester_exams); ?>;
 
-        function validateDate(dateStr) {
-            if (!master_start || !master_end || !dateStr) return true;
+        function parseExamDate(value) {
+            var format = /^\d{4}-\d{2}-\d{2}$/.test(value) ? 'yy-mm-dd' : 'dd-mm-yy';
+            try {
+                var date = $.datepicker.parseDate(format, value);
+                return date && $.datepicker.formatDate(format, date) === value ? date : null;
+            } catch (error) {
+                return null;
+            }
+        }
 
-            var date;
-            if (dateStr.indexOf('-') !== -1) {
-                var parts = dateStr.split('-');
-                if (parts[0].length === 4) {
-                    // Y-m-d
-                    date = new Date(dateStr);
-                } else {
-                    // d-m-Y
-                    date = new Date(parts[2], parts[1] - 1, parts[0]);
-                }
-            } else {
-                date = new Date(dateStr);
+        function getExamPeriod(masterId) {
+            return masterExams.find(function (exam) { return String(exam.id) === String(masterId); }) || {};
+        }
+
+        function setDatepickerPeriod(input, masterId) {
+            var period = getExamPeriod(masterId);
+            input.datepicker('option', {
+                minDate: parseExamDate(period.start_date || ''),
+                maxDate: parseExamDate(period.end_date || '')
+            });
+        }
+
+        // This module initializes its own pickers; the School script only runs on School pages.
+        $('.olama-datepicker').datepicker({
+            dateFormat: 'dd-mm-yy',
+            changeMonth: true,
+            changeYear: true,
+            firstDay: 0,
+            isRTL: <?php echo Olama_School_Helpers::is_arabic() ? 'true' : 'false'; ?>
+        });
+        $('.inline-date-input').each(function () {
+            setDatepickerPeriod($(this), $(this).data('semester-exam-id'));
+        });
+        $('#add_semester_exam_id').on('change', function () {
+            setDatepickerPeriod($('#add_exam_date'), $(this).val());
+        });
+
+        function validateDate(dateStr, masterId) {
+            var date = parseExamDate(dateStr);
+            if (!date) {
+                alert('<?php echo esc_js(__('Please enter a valid exam date in DD-MM-YYYY format.', 'olama-exam-management')); ?>');
+                return false;
             }
 
-            if (isNaN(date.getTime())) return true;
-
-            var start = new Date(master_start);
-            var end = new Date(master_end);
-
-            date.setHours(0, 0, 0, 0);
-            start.setHours(0, 0, 0, 0);
-            end.setHours(0, 0, 0, 0);
-
-            if (date < start || date > end) {
-                alert('<?php echo esc_js(__('Exam date must be within the allowed period: ', 'olama-school')); ?>' + '<?php echo $current_master_exam ? Olama_School_Helpers::format_date($current_master_exam->start_date) : ''; ?>' + ' - ' + '<?php echo $current_master_exam ? Olama_School_Helpers::format_date($current_master_exam->end_date) : ''; ?>');
+            var period = getExamPeriod(masterId);
+            var start = parseExamDate(period.start_date || '');
+            var end = parseExamDate(period.end_date || '');
+            if ((start && date < start) || (end && date > end)) {
+                alert('<?php echo esc_js(__('Exam date must be within the allowed period: ', 'olama-school')); ?>' +
+                    (start ? $.datepicker.formatDate('dd-mm-yy', start) : '') + ' - ' +
+                    (end ? $.datepicker.formatDate('dd-mm-yy', end) : ''));
                 return false;
             }
             return true;
@@ -763,6 +786,7 @@ if ($selected_semester_exam_id) {
         $('#open-add-exam-modal').on('click', function () {
             $('#exam-form')[0].reset();
             $('#exam_id').val('');
+            $('#add_semester_exam_id').trigger('change');
             $('#exam-modal').fadeIn(200);
         });
 
@@ -771,20 +795,12 @@ if ($selected_semester_exam_id) {
             var row = $(this).closest('tr');
             row.find('.date-display').hide();
             row.find('.date-edit').show();
-
-            // Initialize datepicker if not already initialized
-            var input = row.find('.inline-date-input');
-            if (!input.hasClass('hasDatepicker')) {
-                input.datepicker({
-                    dateFormat: 'dd-mm-yy',
-                    changeMonth: true,
-                    changeYear: true
-                });
-            }
         });
 
         $(document).on('click', '.cancel-inline-date', function () {
             var row = $(this).closest('tr');
+            var input = row.find('.inline-date-input');
+            input.datepicker('setDate', parseExamDate(input.attr('data-saved-date')));
             row.find('.date-edit').hide();
             row.find('.date-display').show();
         });
@@ -793,7 +809,7 @@ if ($selected_semester_exam_id) {
             var btn = $(this);
             var row = btn.closest('tr');
             var input = row.find('.inline-date-input');
-            var newDate = input.val();
+            var newDate = input.val().trim();
             var examId = input.data('exam-id');
             var yearId = input.data('year-id');
             var semesterId = input.data('semester-id');
@@ -803,7 +819,7 @@ if ($selected_semester_exam_id) {
 
             console.log('Saving exam date:', examId, newDate, yearId, semesterId, gradeId, subjectId);
 
-            if (!validateDate(newDate)) return;
+            if (!validateDate(newDate, semesterExamId)) return;
 
             btn.prop('disabled', true).text('...');
 
@@ -816,11 +832,19 @@ if ($selected_semester_exam_id) {
                 grade_id: gradeId,
                 subject_id: subjectId,
                 semester_exam_id: semesterExamId,
-                exam_date: newDate
+                exam_date: $.datepicker.formatDate('yy-mm-dd', parseExamDate(newDate))
             }, function (response) {
                 console.log('Response:', response);
                 if (response.success) {
-                    row.find('.date-display').text(newDate);
+                    var savedDate = response.data.exam_date;
+                    row.find('.date-display').text(response.data.formatted_date);
+                    input.attr('data-saved-date', savedDate).datepicker('setDate', parseExamDate(savedDate));
+                    var materialButton = row.find('.edit-exam-material');
+                    var examData = materialButton.data('exam');
+                    examData.exam_date = savedDate;
+                    examData.formatted_date = response.data.formatted_date;
+                    materialButton.attr('data-exam', JSON.stringify(examData)).data('exam', examData);
+                    row.find('.approve-exam').attr('data-exam-date', savedDate).data('exam-date', savedDate);
                     row.find('.date-edit').hide();
                     row.find('.date-display').show();
                     btn.prop('disabled', false).text('<?php _e('Save', 'olama-school'); ?>');
@@ -1295,8 +1319,11 @@ if ($selected_semester_exam_id) {
 
             // Date validation for forms that have exam_date
             var dateVal = form.find('[name="exam_date"]').val();
-            if (dateVal && !validateDate(dateVal)) {
-                return;
+            if (form.find('[name="exam_date"]').length) {
+                if (!validateDate((dateVal || '').trim(), form.find('[name="semester_exam_id"]').val())) {
+                    return;
+                }
+                form.find('[name="exam_date"]').val($.datepicker.formatDate('dd-mm-yy', parseExamDate(dateVal.trim())));
             }
 
             var nonce = form.find('[name="olama_exam_nonce_field"]').val() || form.find('[name="olama_material_nonce_field"]').val();
